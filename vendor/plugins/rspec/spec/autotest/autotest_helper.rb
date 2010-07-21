@@ -1,6 +1,8 @@
-require "rubygems"
-require 'autotest'
-dir = File.dirname(__FILE__)
-require File.expand_path("#{dir}/../spec_helper")
-require File.expand_path("#{dir}/../../lib/autotest/rspec")
-require File.expand_path("#{dir}/autotest_matchers")
+require 'spec_helper'
+begin
+  require 'autotest'
+rescue LoadError
+  raise "You must install ZenTest to use autotest"
+end
+require 'autotest/rspec'
+require 'spec/autotest/autotest_matchers'

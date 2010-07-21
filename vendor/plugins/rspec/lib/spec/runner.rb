@@ -6,8 +6,9 @@ require 'spec/runner/command_line'
 require 'spec/runner/drb_command_line'
 require 'spec/runner/backtrace_tweaker'
 require 'spec/runner/reporter'
-require 'spec/runner/spec_parser'
+require 'spec/runner/line_number_query'
 require 'spec/runner/class_and_arguments_parser'
+require 'spec/runner/extensions/kernel'
 
 module Spec
   module Runner
@@ -57,8 +58,7 @@ module Spec
       end
 
       def run
-        return true if options.examples_run?
-        options.run_examples
+        options.examples_run? || options.run_examples
       end
 
     end

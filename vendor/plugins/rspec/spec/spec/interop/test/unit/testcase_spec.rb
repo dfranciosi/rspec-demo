@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/test_unit_spec_helper'
+require 'spec/interop/test/unit/test_unit_spec_helper'
 
 describe "Test::Unit::TestCase" do
   include TestUnitSpecHelper
@@ -42,8 +42,9 @@ describe "Test::Unit::TestCase" do
       $?.should == 256
     end
   end
-  
-  describe "not yet implemented examples:" do
-    it "this example should be reported as pending (not an error)"
+
+  it "should find all Test::Unit test methods" do
+    output = ruby("#{@dir}/test_case_with_various_names.rb")
+    output.should include("4 examples, 0 failures")
   end
 end

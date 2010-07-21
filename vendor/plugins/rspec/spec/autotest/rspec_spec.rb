@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + "/autotest_helper"
+require 'spec/autotest/autotest_helper'
 
 describe Autotest::Rspec do
   describe "adding spec.opts --options" do 
@@ -36,7 +36,7 @@ describe Autotest::Rspec do
     end
   
     it "should make the appropriate test command" do
-      @rspec_autotest.make_test_cmd(@files_to_test).should == "#{@ruby} #{@spec_cmd} #{@to_test} #{@options}"
+      @rspec_autotest.make_test_cmd(@files_to_test).should == "#{@ruby} #{@spec_cmd} --autospec #{@to_test} #{@options}"
     end
 
     it "should return a blank command for no files" do

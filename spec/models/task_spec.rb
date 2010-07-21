@@ -8,12 +8,12 @@ describe Task do
       @task = Task.new(:title => 'test task')
     end
 
-    it 'should succeed when all required attributres are set' do
+    it 'should succeed when all required attributes are set' do
       @task.should be_valid
     end
 
     it 'should not succeed when no title is set' do
-      @task.should require_attribute(:title)
+      @task.should_require_attributes :title
     end
 
     it 'should not succeed when a title with less than 5 characters is set' do

@@ -1,5 +1,6 @@
-require File.dirname(__FILE__) + '/../../../spec_helper'
+require 'spec_helper'
 require 'controller_spec_controller'
+require File.join(File.dirname(__FILE__), "/shared_routing_example_group_examples.rb")
 
 ['integration', 'isolation'].each do |mode|
   describe "A controller example running in #{mode} mode", :type => :controller do
@@ -7,6 +8,7 @@ require 'controller_spec_controller'
     integrate_views if mode == 'integration'
 
     accesses_configured_helper_methods
+    include RoutingExampleGroupSpec
 
     describe "with an implicit subject" do
       it "uses the controller" do
@@ -102,7 +104,12 @@ require 'controller_spec_controller'
         get 'action_which_gets_session', :expected => "session value"
       end.should_not raise_error
     end
-
+    
+    it "allows inline rendering" do
+      get 'action_that_renders_inline'
+      response.body.should == "inline code"
+    end
+    
     describe "handling should_receive(:render)" do
       it "should warn" do
         controller.should_receive(:render).with(:template => "controller_spec/action_with_template")
@@ -140,8 +147,8 @@ require 'controller_spec_controller'
   
       it "should support a Symbol key" do
         get 'action_which_sets_cookie', :value => "cookie value"
-        if Rails::VERSION::STRING >= "2.3"
-          cookies[:cookie_key].should == "cookie+value"
+        if ::Rails::VERSION::STRING >= "2.3"
+          cookies[:cookie_key].should match("cookie[\+ ]value")
         else
           cookies[:cookie_key].should == ["cookie value"]
         end
@@ -149,8 +156,8 @@ require 'controller_spec_controller'
 
       it "should support a String key" do
         get 'action_which_sets_cookie', :value => "cookie value"
-        if Rails::VERSION::STRING >= "2.3"
-          cookies['cookie_key'].should == "cookie+value"
+        if ::Rails::VERSION::STRING >= "2.3"
+          cookies['cookie_key'].should match("cookie[\+ ]value")
         else
           cookies['cookie_key'].should == ["cookie value"]
         end
@@ -158,49 +165,6 @@ require 'controller_spec_controller'
     
     end
     
-    class CustomRouteSpecController < ActionController::Base; end
-    class RspecOnRailsSpecsController < ActionController::Base; end
-
-    it "should support custom routes" do
-      route_for(:controller => "custom_route_spec", :action => "custom_route").
-        should == "/custom_route"
-    end
-
-    it "should support existing routes" do
-      route_for(:controller => "controller_spec", :action => "some_action").
-        should == "/controller_spec/some_action"
-    end
-
-    it "should support existing routes with additional parameters" do
-      route_for(:controller => "controller_spec", :action => "some_action", :param => '1').
-        should == "/controller_spec/some_action?param=1"
-    end
-    
-    it "recognizes routes with methods besides :get" do
-      route_for(:controller => "rspec_on_rails_specs", :action => "update", :id => "37").
-        should == {:path => "/rspec_on_rails_specs/37", :method => :put}
-    end
-
-    it "should generate params for custom routes" do
-      params_from(:get, '/custom_route').
-        should == {:controller => "custom_route_spec", :action => "custom_route"}
-    end
-
-    it "should generate params for existing routes" do
-      params_from(:get, '/controller_spec/some_action').
-        should == {:controller => "controller_spec", :action => "some_action"}
-    end
-
-    it "should generate params for an existing route with a query parameter" do
-      params_from(:get, '/controller_spec/some_action?param=1').
-        should == {:controller => "controller_spec", :action => "some_action", :param => '1'}
-    end
-
-    it "should generate params for an existing route with multiple query parameters" do
-      params_from(:get, '/controller_spec/some_action?param1=1&param2=2').
-        should == {:controller => "controller_spec", :action => "some_action", :param1 => '1', :param2 => '2' }
-    end
-
     it "should expose instance vars through the assigns hash" do
       get 'action_setting_the_assigns_hash'
       assigns[:indirect_assigns_key].should == :indirect_assigns_key_value
@@ -224,11 +188,19 @@ require 'controller_spec_controller'
       }.should_not raise_error
     end
     
-    describe "extending #render on a controller" do
-      it "supports two arguments (as with rails 2.2)" do
-        get 'action_with_two_arg_render'
-        response.body.should =~ /new Effect\.Highlight/
+    if ::Rails::VERSION::STRING > '2.1'
+      describe "extending #render on a controller" do
+        it "supports two arguments (as with rails 2.1)" do
+          get 'action_with_two_arg_render'
+          response.body.should =~ /new Effect\.Highlight/
+        end
       end
+    end
+    
+    it "should access headers" do
+      request.env['ACCEPT'] = "application/json"
+      get 'action_that_returns_headers', :header => 'ACCEPT'
+      response.body.should == "application/json"
     end
   end
 
@@ -301,6 +273,25 @@ end
 module Spec
   module Rails
     module Example
+      describe ApplicationController, :type => :controller do
+        describe "controller_name" do
+          controller_name :controller_spec
+          it "overrides the controller class submitted to the outermost group" do
+            subject.should be_an_instance_of(ControllerSpecController)
+          end
+          describe "in a nested group" do
+            it "overrides the controller class submitted to the outermost group" do
+              subject.should be_an_instance_of(ControllerSpecController)
+            end
+            describe "(doubly nested)" do
+              it "overrides the controller class submitted to the outermost group" do
+                subject.should be_an_instance_of(ControllerSpecController)
+              end
+            end
+          end
+        end
+      end
+      
       describe ControllerExampleGroup do
         it "should clear its name from the description" do
           group = describe("foo", :type => :controller) do

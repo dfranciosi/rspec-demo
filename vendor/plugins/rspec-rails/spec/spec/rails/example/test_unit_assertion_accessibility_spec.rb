@@ -1,11 +1,11 @@
-require File.dirname(__FILE__) + '/../../../spec_helper'
+require 'spec_helper'
 
 describe "assert_equal", :shared => true do
   it "like assert_equal" do
     assert_equal 1, 1
     lambda {
       assert_equal 1, 2
-    }.should raise_error(Test::Unit::AssertionFailedError)
+    }.should raise_error(::Test::Unit::AssertionFailedError)
   end
 end
 

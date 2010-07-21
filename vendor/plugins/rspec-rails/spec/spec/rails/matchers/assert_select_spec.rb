@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/../../../spec_helper'
+require 'spec_helper'
 
 # assert_select plugins for Rails
 #
@@ -12,11 +12,6 @@ class AssertSelectController < ActionController::Base
     @content = content
   end
 
-  #NOTE - this is commented because response is implemented in lib/spec/rails/context/controller
-  # def response(&block)
-  #   @update = block
-  # end
-  # 
   def html()
     render :text=>@content, :layout=>false, :content_type=>Mime::HTML
     @content = nil
@@ -66,9 +61,9 @@ module AssertSelectSpecHelpers
   end
   
   def first_non_rspec_line_in_backtrace_of(error)
-    rspec_path = File.join('rspec', 'lib', 'spec')
+    rlocation = File.join('rspec', 'lib', 'spec')
     error.backtrace.reject { |line|
-      line =~ /#{rspec_path}/
+      line =~ /#{rlocation}/
     }.first
   end
 
@@ -87,6 +82,12 @@ describe "should have_tag", :type => :controller do
   include AssertSelectSpecHelpers
   controller_name :assert_select
   integrate_views
+
+  it "should not care about the XML setting on HTML with unclosed singletons when using a response" do
+    render_html %Q{<table id="1"><tr><td><img src="image.png" alt="image">Hello</td></tr><tr><td></td></tr><tr><td>World</td></tr></table>}
+    response.should have_tag("tr", 3)
+    response.should have_tag("tr", 3, :xml => true)
+  end
 
   it "should find specific numbers of elements" do
     render_html %Q{<div id="1"></div><div id="2"></div>}
@@ -484,8 +485,7 @@ describe "have_rjs behaviour_type", :type => :controller do
       with_tag("#1")
       with_tag("#2")
       with_tag("#3")
-      # with_tag("#4")
-      # with_tag("#5")
+      with_tag("#4")
     end
   end
 
@@ -678,56 +678,6 @@ describe "send_email behaviour_type", :type => :controller do
 
 end
 
-# describe "An rjs call to :visual_effect, a 'should have_rjs' spec with",
-#   :type => :view do
-#     
-#   before do
-#     render 'rjs_spec/visual_effect'
-#   end
-# 
-#   it "should pass with the correct element name" do
-#     response.should have_rjs(:effect, :fade, 'mydiv')
-#   end
-#   
-#   it "should fail the wrong element name" do
-#     lambda {
-#       response.should have_rjs(:effect, :fade, 'wrongname')
-#     }.should raise_error(SpecFailed)
-#   end
-#   
-#   it "should fail with the correct element but the wrong command" do
-#     lambda {
-#       response.should have_rjs(:effect, :puff, 'mydiv')
-#     }.should raise_error(SpecFailed)
-#   end
-#   
-# end
-#   
-# describe "An rjs call to :visual_effect for a toggle, a 'should have_rjs' spec with",
-#   :type => :view do
-#     
-#   before do
-#     render 'rjs_spec/visual_toggle_effect'
-#   end
-#   
-#   it "should pass with the correct element name" do
-#     response.should have_rjs(:effect, :toggle_blind, 'mydiv')
-#   end
-#   
-#   it "should fail with the wrong element name" do
-#     lambda {
-#       response.should have_rjs(:effect, :toggle_blind, 'wrongname')
-#     }.should raise_error(SpecFailed)
-#   end
-#   
-#   it "should fail the correct element but the wrong command" do
-#     lambda {
-#       response.should have_rjs(:effect, :puff, 'mydiv')
-#     }.should raise_error(SpecFailed)
-#   end
-#   
-# end
-
 describe "string.should have_tag", :type => :helper do
   include AssertSelectSpecHelpers
 
@@ -745,6 +695,10 @@ describe "string.should have_tag", :type => :helper do
     "<div><p>a paragraph</p></div>".should have_tag("p", "a paragraph")
   end
 
+  it "should find nested element in one line" do
+    "<div><p>a paragraph</p></div>".should have_tag("div p","a paragraph")
+  end
+
   it "should find nested element" do
     "<div><p>a paragraph</p></div>".should have_tag("div") do
       with_tag("p", "a paragraph")
@@ -758,6 +712,26 @@ describe "string.should have_tag", :type => :helper do
       end
     end.should raise_error(SpecFailed)
   end
+
+  it "should raise when using an HTML string with unclosed singleton tags when using the XML parsing setting" do
+    lambda do
+      %Q{<table id="1"><tr><td><img src="image.png" alt="image">Hello</td></tr><tr><td></td></tr><tr><td>World</td></tr></table>}.
+        should have_tag("tr", 3, :xml => true)
+    end.should raise_error
+  end
+
+  it "should find the specific number of elements regardless of unclosed singletons in a HTML string" do
+    %Q{<table id="1"><tr><td><img src="image.png" alt="image">Hello</td></tr><tr><td></td></tr><tr><td>World</td></tr></table>}.
+      should have_tag("tr", 3)
+  end
+
+  it "should find nested tags in an HTML string regardless unclosed singletons" do
+    %Q{<table id="1"><tr><td><img src="image.png" alt="image">Hello</td></tr><tr><td></td></tr><tr><td>World</td></tr></table>}.
+      should have_tag("table") do
+        with_tag('tr',3)
+    end
+  end
+
 end
 
 describe "have_tag", :type => :controller do
@@ -809,3 +783,53 @@ describe 'selecting in HTML that contains a mock with null_object' do
     lambda {html.should have_tag('b')}.should_not raise_error
   end
 end
+
+# describe "An rjs call to :visual_effect, a 'should have_rjs' spec with",
+#   :type => :view do
+#     
+#   before do
+#     render 'rjs_spec/visual_effect'
+#   end
+# 
+#   it "should pass with the correct element name" do
+#     response.should have_rjs(:effect, :fade, 'mydiv')
+#   end
+#   
+#   it "should fail the wrong element name" do
+#     lambda {
+#       response.should have_rjs(:effect, :fade, 'wrongname')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+#   it "should fail with the correct element but the wrong command" do
+#     lambda {
+#       response.should have_rjs(:effect, :puff, 'mydiv')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+# end
+#   
+# describe "An rjs call to :visual_effect for a toggle, a 'should have_rjs' spec with",
+#   :type => :view do
+#     
+#   before do
+#     render 'rjs_spec/visual_toggle_effect'
+#   end
+#   
+#   it "should pass with the correct element name" do
+#     response.should have_rjs(:effect, :toggle_blind, 'mydiv')
+#   end
+#   
+#   it "should fail with the wrong element name" do
+#     lambda {
+#       response.should have_rjs(:effect, :toggle_blind, 'wrongname')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+#   it "should fail the correct element but the wrong command" do
+#     lambda {
+#       response.should have_rjs(:effect, :puff, 'mydiv')
+#     }.should raise_error(SpecFailed)
+#   end
+#   
+# end

@@ -9,12 +9,13 @@ describe 'tasks/index' do
 
   it 'should render a list of tasks' do
     do_render
-
+    
     response.should have_tag('ul.tasks > li', 1)
   end
 
   it 'should render links to the tasks' do
     do_render
+    
 
     response.should have_tag('ul.tasks > li > a[href=?]', task_path(@task))
   end

@@ -47,6 +47,19 @@ module Spec
       #     end
       #   end
       class ViewExampleGroup < FunctionalExampleGroup
+        if ActionView::Base.respond_to?(:load_helpers) # Rails 2.0.x
+          ActionView::Helpers.constants.each do |name|
+            const = ActionView::Helpers.const_get(name)
+            include const if name.include?("Helper") && Module === const
+          end
+        elsif ActionView::Base.respond_to?(:helper_modules) # Rails 2.1.x
+          ActionView::Base.helper_modules.each do |helper_module|
+            include helper_module
+          end
+        else # Rails 2.2.x
+          include ActionView::Helpers
+        end
+
         tests ViewExampleGroupController
         class << self
           def inherited(klass) # :nodoc:
@@ -119,8 +132,15 @@ module Spec
         # See Spec::Rails::Example::ViewExampleGroup for more information.
         def render(*args)
           options = Hash === args.last ? args.pop : {}
+          
+          if args.empty? 
+            unless [:partial, :inline, :file, :template, :xml, :json, :update].any? {|k| options.has_key? k} 
+              args << self.class.description_parts.first
+            end
+          end
+          
           options[:template] = args.first.to_s.sub(/^\//,'') unless args.empty?
-
+          
           set_base_view_path(options)
           add_helpers(options)
 
